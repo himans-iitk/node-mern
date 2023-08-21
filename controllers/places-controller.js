@@ -8,7 +8,7 @@ const User = require('../models/user');
 
 const getPlaceById =async (req, res, next) => {
     const placeId = req.params.pid;
-    let placee;
+    let place;
     try{
         place = await Place.findById(placeId);
     } catch (err) {
@@ -57,7 +57,11 @@ const createPlace = async (req, res, next) => {
        const error = new HttpError('Invalid inputs passes, please check your data', 422);
        return next(error);
     }
-    const { title, description, coordinates, address, creator } = req.body;
+    let coordinates = {
+        "lat": 35.6365636,
+        "lng": 139.7401022
+      };
+    const { title, description, address, creator } = req.body;
 
     const createdPlace = new Place({
         title,
@@ -153,7 +157,7 @@ const deletePlace = async (req, res, next) => {
     }
 
     if(!place) {
-        const error = new HttpError(' COuld not find place for this id.', 404);
+        const error = new HttpError(' Could not find place for this id.', 404);
         return next(error);
     }
 
