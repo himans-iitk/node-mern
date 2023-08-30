@@ -1,6 +1,7 @@
 const {v4: uuid} = require('uuid');
 const {validationResult} = require('express-validator');
 const mongoose = require('mongoose');
+const fs = require('fs');
 
 const HttpError = require('../models/http-error');
 const Place = require('../models/place');
@@ -68,7 +69,7 @@ const createPlace = async (req, res, next) => {
         description,
         address,
         location: coordinates,
-        image: 'https://rimage.gnst.jp/livejapan.com/public/article/detail/a/00/00/a0000002/img/basic/a0000002_main.jpg?20220629143600',
+        image: req.file.path, 
         creator
     });
 
@@ -127,6 +128,14 @@ const updatePlace = async (req, res, next) => {
         return next(error);
     }
 
+    if(place.creator.toString() != req.userData.userId) {
+        const error = new HttpError(
+            'You are not allowed to edit this place.',
+            401
+        );
+        return next(error);
+    }
+
     place.title = title;
     place.description = description;
 
@@ -147,6 +156,7 @@ const deletePlace = async (req, res, next) => {
     const placeId = req.params.pid;
 
     let place;
+
     try{
         place = await Place.findById(placeId).populate('creator');
     } catch (err) {
@@ -156,10 +166,20 @@ const deletePlace = async (req, res, next) => {
         return next(error);
     }
 
+    if(place.creator.id !== req.userData.userId) {
+        const error = new HttpError(
+            'You are not allowed to delete this place.',
+            401
+        );
+        return next(error);
+    }
+
     if(!place) {
         const error = new HttpError(' Could not find place for this id.', 404);
         return next(error);
     }
+
+    const imagePath = place.image;
 
     try {
         //await Place.deleteOne({ _id: placeId });
@@ -176,6 +196,10 @@ const deletePlace = async (req, res, next) => {
         );
         return next(error);
     };
+
+    fs.unlink(imagePath, err => {
+        console.log(err);
+    });
 
     res.status(200).json({message: 'Deleted place.'});
 };
